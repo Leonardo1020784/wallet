@@ -1,0 +1,5 @@
+CREATE TABLE user_balance (
+    user_id UUID PRIMARY KEY,
+    balance NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

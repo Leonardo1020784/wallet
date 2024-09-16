@@ -1,0 +1,80 @@
+version: '3.8'
+services:
+  user-service:
+    build: ./user-service
+    ports:
+      - "8080:8080"
+    depends_on:
+      - kafka
+      - nats
+      - postgres
+    environment:
+      - KAFKA_BROKER=kafka:9092
+      - NATS_SERVER=nats://nats:4222
+      - POSTGRES_URL=postgres://postgres:password@postgres:5432/wallet?sslmode=disable
+    networks:
+      - wallet-network
+
+  transaction-service:
+    build: ./transaction-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      - kafka
+      - nats
+      - postgres
+    environment:
+      - KAFKA_BROKER=kafka:9092
+      - NATS_SERVER=nats://nats:4222
+      - POSTGRES_URL=postgres://postgres:password@postgres:5432/wallet?sslmode=disable
+    networks:
+      - wallet-network
+      
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true" 
+    depends_on:
+      - zookeeper
+    networks:
+      - wallet-network
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    networks:
+      - wallet-network
+
+  nats:
+    image: nats:latest
+    ports:
+      - "4222:4222"
+    networks:
+      wallet-network:
+        aliases:
+          - nats
+
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: wallet
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./migrations:/docker-entrypoint-initdb.d
+    networks:
+      - wallet-network
+
+networks:
+  wallet-network:
+    driver: bridge

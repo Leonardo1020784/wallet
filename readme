@@ -1,0 +1,119 @@
+Digital Wallet System
+    This project is a Golang-based digital wallet backend that supports user creation, balance management, money transfers, and transaction logging across two microservices: user-service and transaction-service. It utilizes Kafka for messaging, NATS for service-to-service communication, and PostgreSQL for database management.
+
+Project Structure
+
+ wallet/
+    └── migrations/
+    │   ├── create_transactions_table.sql
+    │   ├── create_user_balance_table.sql
+    │   ├── create_user.sum
+    ├── transaction-service/
+    │   ├── Dockerfile
+    │   ├── go.mod
+    │   ├── go.sum
+    │   ├── cmd/
+    │   │   └── main.go
+    │   ├── internal/
+    │   │   ├── handlers/
+    │   │   │   └── transaction_handler.go
+    │   │   ├── models/
+    │   │   │   └── transaction.go
+    │   │   ├── kafka/
+    │   │   │   └── consumer.go
+    ├── user-service/
+    │   ├── Dockerfile
+    │   ├── go.mod
+    │   ├── go.sum
+    │   ├── cmd/
+    │   │   └── main.go
+    │   └── internal/
+    │       ├── handlers/
+    │       │   └── user_handler.go
+    │       ├── kafka/
+    │       │   └── producer.go
+    │       └── models/
+    │           └── user.go
+    └── docker-compose.yml
+
+Libraries 
+    go mod tify 
+    Access to each folder user service and transaction service and rrun go mod tidy to create go.sum file 
+
+Running the Services
+    Use Docker Compose to start up all the necessary services, including Kafka, NATS, PostgreSQL, and the microservices:
+
+    bash
+    Copy code
+    docker-compose up --build
+
+TEST POST CREATE USER 
+
+curl -X POST http://localhost:8080/createUser \
+    -H "Content-Type: application/json" \
+    -d '{
+        "user_id": "123e4567-e89b-12d3-a456-426614174000",
+        "email": "testuser@example.com"
+    }'
+
+curl -X POST http://localhost:8080/createUser \
+    -H "Content-Type: application/json" \
+    -d '{
+        "user_id": "123e4567-e89b-12d3-a456-426614174002",
+        "email": "testuser2@example.com"
+    }'
+
+    RESPONSE {"user_id":"123e4567-e89b-12d3-a456-426614174000","email":"testuser@example.com","created_at":"2024-09-16T14:51:58.877875592Z"}
+    RESPONSE {"user_id":"123e4567-e89b-12d3-a456-426614174002","email":"testuser2@example.com","created_at":"2024-09-16T15:01:55.1829906Z"}
+
+TEST POST ADD MONEY 
+
+ curl -X POST http://localhost:8081/addMoney \
+    -H "Content-Type: application/json" \
+    -d '{
+        "user_id": "123e4567-e89b-12d3-a456-426614174000",
+        "amount": 200.00
+    }'
+
+    RESPONSE {"updated_balance":200}
+
+
+TEST TRANSFER MONEY
+
+ curl -X POST http://localhost:8081/transferMoney \
+    -H "Content-Type: application/json" \
+    -d '{
+        "from_user_id": "123e4567-e89b-12d3-a456-426614174000",
+        "to_user_id": "123e4567-e89b-12d3-a456-426614174002",
+        "amount": 50.00
+    }'
+
+    RESPONSE {"message":"Transfer successful"}
+
+TEST GET BALANCE
+
+curl -X GET "http://localhost:8080/getBalance?email=user1@example.com"
+
+    RESPONSE {"email":"user1@example.com","balance":150}
+
+curl -X GET "http://localhost:8080/getBalance?email=user2@example.com"
+
+    RESPONSE {"email":"user2@example.com","balance":50}
+
+TEST KAFKA EVENT 
+
+    docker exec -it wallet-kafka-1 /bin/bash
+
+    kafka-console-consumer --bootstrap-server localhost:9092 --topic user-created --from-beginning
+
+    USER CREATED 
+
+    {"user_id":"123e4567-e89b-12d3-a456-426614174000","email":"testuser@example.com","created_at":"2024-09-14T14:20:05.27713968Z"}
+
+    GO OUT KAFKA exit
+
+DB
+
+   docker exec -it wallet-postgres-1 psql -U postgres -d wallet
+
+This README provides setup instructions, API testing guidelines, and steps to verify the functionality of the Digital Wallet backend services. 
